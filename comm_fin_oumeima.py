@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import RPi.GPIO as GPIO
 from lib_nrf24 import NRF24
 import time
@@ -12,7 +10,7 @@ import MySQLdb
 from time import strftime
 
 #Variables for MySQL
-db = MySQLdb.connect(host="localhost",user="root",passwd="bresil", db="temp_database")
+db = MySQLdb.connect(host,user,passwd_mysql,database_name)
 cur = db.cursor()
 
 GPIO.setmode(GPIO.BCM)
@@ -38,6 +36,7 @@ while len(message) < 32:
 	message.append(0)
 
 while True:
+	date = time.strftime("%Y-%m-%d")
 	datetimeWrite = (time.strftime("%Y-%m-%d ") + time.strftime("%H:%M:%S"))
 	print datetimeWrite
 
@@ -64,28 +63,48 @@ while True:
 	print("Our received message decodes to: {}".format(string))
 	
 	radio.stopListening()
-	
-	if string:
-		temperature = string.split(";")[0]
-		humidity = string.split(";")[1]
-		brightness = string.split(";")[2]
-		print(temperature)
-		print(humidity)
-		print(brightness)
-		sql = ("""INSERT INTO tempLog(datetime,temperature,humidity,brightness) VALUES (%s,%s,%s,%s)""", (datetimeWrite,temperature,humidity,brightness))
-		try:
-			print "Writing to database..."
-			#Execute the SQL command
-			cur.execute(*sql)
-			#commit your changes in the database
-			db.commit()
-			print "Write Complete"
-		except:
-			#rollback in case there is any error
-			db.rollback()
-			print "Failed writing to database"
-		cur.close()
-		db.close()
-
-
+	if (string == "CHARGING PROBLEM") :
+		battery_status = string
+		sql = ("""INSERT INTO mesures(battery_status) VALUES (%s)""", (battery_status))
+                try:
+                        print "Writing to database..."
+                        #Execute the SQL command
+                        cur.execute(*sql)
+                        #commit your changes in the database
+                        db.commit()
+                        print "Write Complete"
+                except:
+                        #rollback in case there is any error
+                        db.rollback()
+                        print "Failed writing to database"
+                cur.close()
+                db.close()
 		break
+
+	
+	else:
+		if string :
+			id = string.split(";")[0]
+			temperature = string.split(";")[1]
+			humidity = string.split(";")[2]
+			brightness = string.split(";")[3]
+			sapflow = string.split(";")[4]
+			print(temperature)
+			print(humidity)
+			print(brightness)
+			print(sapflow)
+			sql = ("""INSERT INTO mesures(id,date,timestamp,temperature,luminosity,humidity,sapflow) VALUES (%s,%s,%s,%s,%s,%s,%s)""", (id,date,datetimeWrite,temperature,brightness,humidity,sapflow))
+			try:
+				print "Writing to database..."
+				#Execute the SQL command
+				cur.execute(*sql)
+				#commit your changes in the database
+				db.commit()
+				print "Write Complete"
+			except:
+				#rollback in case there is any error
+				db.rollback()
+				print "Failed writing to database"
+			cur.close()
+			db.close()
+			break
